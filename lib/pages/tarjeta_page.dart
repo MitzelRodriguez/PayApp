@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_credit_card/credit_card_widget.dart';
+
 import 'package:pay_app/bloc/pagar/pagar_bloc.dart';
-//import 'package:pay_app/models/tarjeta_credito.dart';
+
 import 'package:pay_app/widgets/total_pay_btton.dart';
 
 class TarjetaPage extends StatelessWidget {

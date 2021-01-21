@@ -1,12 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:stripe_payment/stripe_payment.dart';
+
 import 'package:pay_app/bloc/pagar/pagar_bloc.dart';
+import 'package:pay_app/helpers/helpers.dart';
+import 'package:pay_app/services/stripe_service.dart';
 
 class TotalPayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size.width;
+    final pagarBloc = BlocProvider.of<PagarBloc>(context).state;
 
     return Container(
       width: size,
@@ -33,7 +41,7 @@ class TotalPayButton extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
               Text(
-                '255.00 USD',
+                '${pagarBloc.montoPagar}${pagarBloc.moneda}',
                 style: TextStyle(fontSize: 20),
               ),
             ],
@@ -82,10 +90,36 @@ class _BtnPay extends StatelessWidget {
             )
           ],
         ),
-        onPressed: () {});
+        onPressed: () async {
+          mostrarLoading(context);
+
+          final stripeServices = new StripeService();
+          final pagarBloc = BlocProvider.of<PagarBloc>(context).state;
+          final tarjeta = pagarBloc.tarjeta;
+          final mesAnio = tarjeta.expiracyDate.split('/');
+
+          final resp = await stripeServices.pagarConTarjetaExistente(
+            amount: pagarBloc.montoPagarString,
+            currency: pagarBloc.moneda,
+            card: CreditCard(
+              number: tarjeta.cardNumber,
+              expMonth: int.parse(mesAnio[0]),
+              expYear: int.parse(mesAnio[1]),
+            ),
+          );
+
+          Navigator.pop(context);
+          if (resp.ok) {
+            mostrarAlerta(
+                context, 'Pago Realizado', 'Se realizo correctamente el pago');
+          } else {
+            mostrarAlerta(
+                context, 'Ah ocurrido un error', 'Error: ${resp.msg}');
+          }
+        });
   }
 
-  //Pago con GooglePay
+  //Pago con GooglePay o ApplePay
   Widget buildGooglePay(BuildContext context) {
     return MaterialButton(
         height: 45,
@@ -105,6 +139,16 @@ class _BtnPay extends StatelessWidget {
             )
           ],
         ),
-        onPressed: () {});
+        onPressed: () async {
+          final stripeServices = new StripeService();
+          final pagarBloc = BlocProvider.of<PagarBloc>(context).state;
+
+          final resp = await stripeServices.pagarAppleGooglePay(
+            amount: pagarBloc.montoPagarString,
+            currency: pagarBloc.moneda,
+          );
+
+          print(resp);
+        });
   }
 }

@@ -4,12 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:pay_app/bloc/pagar/pagar_bloc.dart';
 
-import 'package:pay_app/data/tarjeta.dart';
+import 'package:pay_app/data/tarjetas.dart';
 import 'package:pay_app/helpers/helpers.dart';
 import 'package:pay_app/pages/tarjeta_page.dart';
+import 'package:pay_app/services/stripe_service.dart';
 import 'package:pay_app/widgets/total_pay_btton.dart';
 
 class HomePage extends StatelessWidget {
+  final stripeServices = new StripeService();
+
   @override
   Widget build(BuildContext context) {
     //especificar el size
@@ -27,8 +30,21 @@ class HomePage extends StatelessWidget {
             icon: Icon(Icons.add),
             onPressed: () async {
               mostrarLoading(context);
-              Future.delayed(Duration(seconds: 1));
+              final amount = pagarBloc.state.montoPagarString;
+              final currency = pagarBloc.state.moneda;
+
+              final resp = await this.stripeServices.pagarConNuevaTartjeta(
+                    amount: amount,
+                    currency: currency,
+                  );
+
               Navigator.pop(context);
+
+              if (resp.ok) {
+                mostrarAlerta(context, 'Tarjeta Ok', 'Todo correcto');
+              } else {
+                mostrarAlerta(context, 'Algo salio mal', resp.msg);
+              }
             },
           )
         ],
@@ -38,7 +54,7 @@ class HomePage extends StatelessWidget {
           //Carrusel cards
           Positioned(
             width: size.width,
-            height: size.width,
+            height: size.height,
             top: 100,
             child: PageView.builder(
                 controller: PageController(
@@ -53,9 +69,7 @@ class HomePage extends StatelessWidget {
                     onTap: () {
                       pagarBloc.add(OnSeleccionarTarjeta(tarjeta));
                       Navigator.push(
-                        context,
-                        navegarFadeIn(context, TarjetaPage()),
-                      );
+                          context, navegarFadeIn(context, TarjetaPage()));
                     },
                     child: Hero(
                       tag: tarjeta.cardNumber,
